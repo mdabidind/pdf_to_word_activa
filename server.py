@@ -2,8 +2,10 @@ from flask import Flask, request, send_file, render_template
 import os
 import uuid
 import subprocess
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 UPLOAD_FOLDER = 'converted'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -18,9 +20,8 @@ def convert_pdf():
 
     file = request.files['pdfFile']
     if not file.filename.lower().endswith('.pdf'):
-        return 'Only PDF files are allowed', 400
+        return 'Only PDF files allowed', 400
 
-    # Save uploaded PDF
     uid = str(uuid.uuid4())
     pdf_path = os.path.join(UPLOAD_FOLDER, f"{uid}.pdf")
     docx_path = os.path.join(UPLOAD_FOLDER, f"{uid}.docx")
@@ -28,7 +29,7 @@ def convert_pdf():
 
     try:
         result = subprocess.run(
-            ['python3', 'convert_pdf_to_docx.py', pdf_path, docx_path],
+            ['python', 'convert_pdf_to_docx.py', pdf_path, docx_path],
             capture_output=True,
             text=True,
             timeout=120
@@ -37,8 +38,8 @@ def convert_pdf():
         if 'success' in result.stdout.lower():
             return send_file(docx_path, as_attachment=True)
         else:
-            print("Conversion stdout:", result.stdout)
-            print("Conversion stderr:", result.stderr)
+            print(result.stdout)
+            print(result.stderr)
             return f"Conversion failed: {result.stdout or result.stderr}", 500
 
     except Exception as e:
